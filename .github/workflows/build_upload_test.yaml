@@ -54,9 +54,9 @@ jobs:
         with:
           cuda: '11.7.0'
 
-      - name: Choose Mac OS SDK
-        if: ${{ matrix.os_base == 'macos'}}
-        run: sudo xcode-select --switch /Applications/Xcode_11.5.app/Contents/Developer
+      # - name: Choose Mac OS SDK
+      #   if: ${{ matrix.os_base == 'macos'}}
+      #   run: sudo xcode-select --switch /Applications/Xcode_11.5.app/Contents/Developer
 
       - name: Build SplinePSF (UNIX)
         if: ${{ matrix.os_base == 'ubuntu' || matrix.os_base == 'macos'}}
