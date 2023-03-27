@@ -51,6 +51,9 @@ class CMakeBuild(build_ext):
         cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir]
         if "CONDA_BUILD" in env:
             cmake_args += [f'-DPython_EXECUTABLE={env["PYTHON"]}']
+        sysroot = os.environ.get("CONDA_BUILD_SYSROOT", None)
+        if sysroot:
+            cmake_args += [f"-CMAKE_OSX_SYSROOT={sysroot}"]
         cmake_args += [f'-DPYBIND11_PYTHON_VERSION={py_ver}']
         cmake_args += ["-GNinja"]
 
