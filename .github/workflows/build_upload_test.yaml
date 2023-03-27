@@ -87,11 +87,11 @@ jobs:
       - name: Upload to Anaconda Cloud (UNIX)
         if: ${{ (matrix.os_base == 'ubuntu' || matrix.os_base == 'macos') && ( github.event.release || github.ref == 'refs/heads/master' )}}
         env:
-          ANACONDA_TOKEN: ${{ secrets.TURAGALAB_ANACONDA_TOKEN }}
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
         run: |
           cd ./dist_tools/conda
           while read NAME; do
-            anaconda -t $ANACONDA_TOKEN upload -l ${{ env.ANACONDA_LABEL }} --force -u turagalab $NAME
+            anaconda -t $ANACONDA_TOKEN upload -l ${{ env.ANACONDA_LABEL }} --force -u haydnspass $NAME
           done < $FILENAMES
 
       # - name: Upload to Anaconda Cloud (Windows)
