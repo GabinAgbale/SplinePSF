@@ -17,7 +17,7 @@ jobs:
       matrix:
         include:
           # Windows2019 & VS 2019 supports 10.1+
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             os_base: ubuntu
             shell: bash -l {0}
 
@@ -116,7 +116,7 @@ jobs:
 
 
   build-linux-pip:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
