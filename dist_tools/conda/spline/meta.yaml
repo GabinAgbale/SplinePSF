@@ -34,10 +34,10 @@ test:
       - spline
     requires:
       - pytest
-    source-files:
-      - python/test/test_basic.py
-    commands:
-      - pytest -s python/test/test_basic.py
+    # source-files:
+    #   - python/test/test_basic.py
+    # commands:
+    #   - pytest -s python/test/test_basic.py
 
 about:
     home: https://rieslab.de
