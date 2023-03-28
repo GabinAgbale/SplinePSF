@@ -17,7 +17,6 @@ requirements:
     - python
     - cmake =3.23
     - ninja
-    # - setuptools
     - pip
     - nvcc_linux-64 =11.7.0             # [linux]
 
