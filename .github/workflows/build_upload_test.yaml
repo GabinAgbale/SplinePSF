@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
           # Windows2019 & VS 2019 supports 10.1+
-          - os: ubuntu-18.04
+          - os: ubuntu-22.04
             os_base: ubuntu
             shell: bash -l {0}
 
@@ -48,15 +48,19 @@ jobs:
         run: |
           conda install conda-build conda-verify anaconda-client
 
+      - name: Install macOS SDK
+        if: contains( matrix.os, 'macos')
+        working-directory: /Users/runner
+        run: |
+          curl -fsSL https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.9.sdk.tar.xz > ~/MacOSX10.9.sdk.tar.xz
+          tar -xzf ~/MacOSX10.9.sdk.tar.xz
+          rm ~/MacOSX10.9.sdk.tar.xz
+
       - uses: Jimver/cuda-toolkit@v0.2.7
         if: ${{ matrix.os_base != 'macos' }}
         id: cuda-toolkit
         with:
           cuda: '11.7.0'
-
-      # - name: Choose Mac OS SDK
-      #   if: ${{ matrix.os_base == 'macos'}}
-      #   run: sudo xcode-select --switch /Applications/Xcode_11.5.app/Contents/Developer
 
       - name: Build SplinePSF (UNIX)
         if: ${{ matrix.os_base == 'ubuntu' || matrix.os_base == 'macos'}}
@@ -107,7 +111,7 @@ jobs:
 
 
   build-linux-pip:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:

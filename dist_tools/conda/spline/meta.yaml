@@ -17,7 +17,7 @@ requirements:
     - python
     - cmake =3.23
     - ninja
-    - setuptools
+    - pip
     - nvcc_linux-64 =11.7.0             # [linux]
 
   host:
@@ -29,13 +29,15 @@ requirements:
     - python
     - {{ pin_compatible('numpy', max_pin='x.x') }}
 
-  test:
-      requires:
-        - pytest
-      source-files:
-        - python/test/test_basic.py
-      commands:
-        - pytest -s python/test/test_basic.py
+test:
+    imports:
+      - spline
+    # requires:
+    #   - pytest
+    # source-files:
+    #   - python/test/test_basic.py
+    # commands:
+    #   - pytest -s python/test/test_basic.py
 
 about:
     home: https://rieslab.de

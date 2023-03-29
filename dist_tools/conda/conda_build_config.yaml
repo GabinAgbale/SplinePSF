@@ -10,13 +10,13 @@ cxx_compiler:
     - vs2017                           # [win]
 
 c_compiler_version:
-    - 9                                # [linux]
-    - 9                                # [osx and x86_64]
+    - 10                               # [linux]
+    - 10                               # [osx and x86_64]
     - 13                               # [osx and arm64]
 
 cxx_compiler_version:
-    - 9                                # [linux]
-    - 9                                # [osx and x86_64]
+    - 10                               # [linux]
+    - 10                               # [osx and x86_64]
     - 13                               # [osx and arm64]
 
 python:
@@ -29,3 +29,6 @@ numpy:
     # - 1.19                             # [not arm64]
     # - 1.20                             # [not arm64]
     - 1.21
+
+CONDA_BUILD_SYSROOT:
+     - /Users/runner/MacOSX10.9.sdk      # [osx and x86_64]

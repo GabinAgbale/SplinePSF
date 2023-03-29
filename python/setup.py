@@ -2,7 +2,6 @@ import setuptools
 
 import os
 import re
-import sys
 import platform
 import subprocess
 
@@ -51,6 +50,10 @@ class CMakeBuild(build_ext):
         cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir]
         if "CONDA_BUILD" in env:
             cmake_args += [f'-DPython_EXECUTABLE={env["PYTHON"]}']
+        sysroot = os.environ.get("CONDA_BUILD_SYSROOT", None)
+        import sys
+        if sysroot and sys.platform == "darwin":
+            cmake_args += [f"-DCMAKE_OSX_SYSROOT={sysroot}"]
         cmake_args += [f'-DPYBIND11_PYTHON_VERSION={py_ver}']
         cmake_args += ["-GNinja"]
 

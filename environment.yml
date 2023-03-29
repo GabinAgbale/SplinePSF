@@ -4,10 +4,10 @@ channels:
 dependencies:
   - bump2version
   - python  # gh runner will pin automatically
-  - numpy =1.21
+  - numpy <1.24
   - cmake =3.23
   - ninja
   - setuptools
   - pybind11 >=2.8
-  - gcc =9
-  - gxx =9
+  - gcc =10
+  - gxx =10
