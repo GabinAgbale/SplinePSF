@@ -5,7 +5,7 @@ dependencies:
   - bump2version
   - python  # gh runner will pin automatically
   - numpy <1.24
-  - cmake =3.23
+  - cmake =3.25
   - ninja
   - setuptools
   - pybind11 >=2.8
