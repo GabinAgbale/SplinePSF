@@ -41,12 +41,14 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-update-conda: true
-          python-version: 3.7
+          miniforge-variant: Mambaforge
+          miniforge-version: 23.1.0-0
+          use-mamba: true
+          python-version: '3.10'
 
       - name: Install conda build libraries
         run: |
-          conda install conda-build conda-verify anaconda-client
+          mamba install boa conda-verify anaconda-client
 
       - name: Install macOS SDK
         if: contains( matrix.os, 'macos')
@@ -67,16 +69,16 @@ jobs:
         run: |
           cd ./dist_tools/conda
 
-          conda-build -c conda-forge spline
-          conda-build -c conda-forge spline --output > $FILENAMES
+          conda mambabuild -c conda-forge spline
+          conda mambabuild -c conda-forge spline --output > $FILENAMES
 
       - name: Build SplinePSF (Windows)
         if: ${{ matrix.os_base == 'windows' }}
         run: |
           Set-Location -Path .\dist_tools\conda
 
-          conda-build -c conda-forge spline
-          conda-build -c conda-forge spline --output > $Env:FILENAMES
+          conda mambabuild -c conda-forge spline
+          conda mambabuild -c conda-forge spline --output > $Env:FILENAMES
 
       - name: Change anaconda label on release
         if: github.event.release
