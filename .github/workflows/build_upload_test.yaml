@@ -24,7 +24,7 @@ jobs:
             os_base: macos
             shell: bash -l {0}
 
-          - os: windows-2019
+          - os: windows-2022
             os_base: windows
             shell: powershell
 
@@ -56,11 +56,11 @@ jobs:
           tar -xzf ~/MacOSX10.9.sdk.tar.xz
           rm ~/MacOSX10.9.sdk.tar.xz
 
-      - uses: Jimver/cuda-toolkit@v0.2.7
+      - uses: Jimver/cuda-toolkit@v0.2.10
         if: ${{ matrix.os_base != 'macos' }}
         id: cuda-toolkit
         with:
-          cuda: '11.7.0'
+          cuda: '12.1.0'
 
       - name: Build SplinePSF (UNIX)
         if: ${{ matrix.os_base == 'ubuntu' || matrix.os_base == 'macos'}}
@@ -128,10 +128,10 @@ jobs:
         auto-activate-base: false
         activate-environment: spline_dev
 
-    - uses: Jimver/cuda-toolkit@v0.2.8
+    - uses: Jimver/cuda-toolkit@v0.2.10
       id: cuda-toolkit
       with:
-        cuda: '11.7.0'
+        cuda: '12.1.0'
 
     - name: Build SplinePSF (pip)
       id: pip-build
