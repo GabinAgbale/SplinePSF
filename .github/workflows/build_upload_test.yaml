@@ -2,7 +2,6 @@ name: build, upload and lazy test
 
 on:
   push:
-    branches: [master]
   pull_request:
   release:
     types: [edited, published]
@@ -17,7 +16,7 @@ jobs:
       matrix:
         include:
           # Windows2019 & VS 2019 supports 10.1+
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             os_base: ubuntu
             shell: bash -l {0}
 
@@ -62,10 +61,6 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: '11.7.0'
-
-      # - name: Choose Mac OS SDK
-      #   if: ${{ matrix.os_base == 'macos'}}
-      #   run: sudo xcode-select --switch /Applications/Xcode_11.5.app/Contents/Developer
 
       - name: Build SplinePSF (UNIX)
         if: ${{ matrix.os_base == 'ubuntu' || matrix.os_base == 'macos'}}
@@ -116,7 +111,7 @@ jobs:
 
 
   build-linux-pip:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
