@@ -62,7 +62,7 @@ jobs:
         if: ${{ matrix.os_base != 'macos' }}
         id: cuda-toolkit
         with:
-          cuda: '12.1.0'
+          cuda: '11.7.0'
 
       - name: Build SplinePSF (UNIX)
         if: ${{ matrix.os_base == 'ubuntu' || matrix.os_base == 'macos'}}
@@ -133,7 +133,7 @@ jobs:
     - uses: Jimver/cuda-toolkit@v0.2.10
       id: cuda-toolkit
       with:
-        cuda: '12.1.0'
+        cuda: '11.7.0'
 
     - name: Build SplinePSF (pip)
       id: pip-build
