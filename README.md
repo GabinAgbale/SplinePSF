@@ -27,10 +27,10 @@ python setup.py bdist_wheel
 ### Build and Deploy with conda
 ```bash
 # recommended: create a new conda build environment
-conda create --name build_clean conda-build
-conda activate build_clean
+conda create --name build boa mamba
+conda activate build
 
 # navigate to [repo]/conda
 cd dist_tools/conda
-conda-build -c conda-forge spline
+conda mambabuild -c conda-forge spline
 ```
