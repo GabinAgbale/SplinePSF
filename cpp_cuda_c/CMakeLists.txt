@@ -14,7 +14,7 @@ if(CMAKE_CUDA_COMPILER AND NOT CUDA_DISABLED)  # the latter is a user definable 
    add_compile_definitions(CUDA_ENABLED)
 
    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-      set(CMAKE_CUDA_ARCHITECTURES 35 50 52 60 61 70 75 80 86)
+      set(CMAKE_CUDA_ARCHITECTURES 50 52 60 61 70 75 80 86)
    endif()
 
 else()  # NO CUDA
