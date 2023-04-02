@@ -125,6 +125,9 @@ jobs:
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        miniforge-variant: Mambaforge
+        miniforge-version: 23.1.0-0
+        use-mamba: true
         environment-file: environment.yml
         python-version: ${{ matrix.python-version }}
         auto-activate-base: false
