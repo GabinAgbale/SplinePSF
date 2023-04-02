@@ -24,6 +24,11 @@ python setup.py install
 python setup.py bdist_wheel
 ```
 
+possibly you have to give CMake the path of the CUDA compiler, e.g.
+```bash
+CUDACXX=/usr/local/cuda-11.8/bin/nvcc python setup.py bdist_wheel
+```
+
 ### Build and Deploy with conda
 ```bash
 # recommended: create a new conda build environment
