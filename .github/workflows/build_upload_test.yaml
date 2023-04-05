@@ -85,13 +85,13 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cd ./dist_tools/conda
-          conda mambabuild -c conda-forge spline --user $ANACONDA_USER --token $ANACONDA_TOKEN --label $ANACONDA_LABEL $ANACONDA_NO_UPLOAD
+          conda mambabuild -c conda-forge spline --user $ANACONDA_USER --token $ANACONDA_TOKEN --label $ANACONDA_LABEL ${{ env.ANACONDA_NO_UPLOAD }}
 
       - name: Build and upload package (Windows)
         if: runner.os == 'Windows'
         run: |
           cd ./dist_tools/conda
-          conda mambabuild -c conda-forge spline --user $env:ANACONDA_USER --token $env:ANACONDA_TOKEN --label $env:ANACONDA_LABEL $env:ANACONDA_NO_UPLOAD
+          conda mambabuild -c conda-forge spline --user $env:ANACONDA_USER --token $env:ANACONDA_TOKEN --label $env:ANACONDA_LABEL ${{ env.ANACONDA_NO_UPLOAD }}
 
 
   build-linux-pip:
