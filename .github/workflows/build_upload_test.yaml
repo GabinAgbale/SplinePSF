@@ -36,7 +36,7 @@ jobs:
         ANACONDA_LABEL: dev
         ANACONDA_USER:  ${{ secrets.ANACONDA_USER }}
         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
-        ANACONDA_NO_UPload: --no-anaconda-upload
+        ANACONDA_NO_UPLOAD: --no-anaconda-upload
 
     steps:
       - uses: actions/checkout@v2
