@@ -36,6 +36,7 @@ jobs:
         ANACONDA_LABEL: dev
         ANACONDA_USER:  ${{ secrets.ANACONDA_USER }}
         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        ANACONDA_NO_UPload: --no-anaconda-upload
 
     steps:
       - uses: actions/checkout@v2
@@ -75,26 +76,22 @@ jobs:
         with:
           cuda: '11.7.0'
 
-      - name: Set default upload behavior
-        run: |
-          conda config --set anaconda_upload no
-
       - name: Overwrite upload config (master and release)
         if: github.event.release || github.event.release.prerelease || (github.ref == 'refs/heads/master')
         run: |
-          conda config --set anaconda_upload yes
+          echo "ANACONDA_NO_UPLOAD=''" >> $GITHUB_ENV
 
       - name: Build and upload package (UNIX)
         if: runner.os != 'Windows'
         run: |
           cd ./dist_tools/conda
-          conda mambabuild -c conda-forge spline --user $ANACONDA_USER --token $ANACONDA_TOKEN --label $ANACONDA_LABEL
+          conda mambabuild -c conda-forge spline --user $ANACONDA_USER --token $ANACONDA_TOKEN --label $ANACONDA_LABEL $ANACONDA_NO_UPLOAD$
 
       - name: Build and upload package (Windows)
         if: runner.os == 'Windows'
         run: |
           cd ./dist_tools/conda
-          conda mambabuild -c conda-forge spline --user $env:ANACONDA_USER --token $env:ANACONDA_TOKEN --label $env:ANACONDA_LABEL
+          conda mambabuild -c conda-forge spline --user $env:ANACONDA_USER --token $env:ANACONDA_TOKEN --label $env:ANACONDA_LABEL $env:ANACONDA_NO_UPLOAD$
 
 
   build-linux-pip:
