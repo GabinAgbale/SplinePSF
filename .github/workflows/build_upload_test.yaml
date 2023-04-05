@@ -80,7 +80,7 @@ jobs:
           conda config --set anaconda_upload no
 
       - name: Overwrite upload config (master and release)
-        if: github.event.release || "github.event.release.prerelease" || (github.ref == 'refs/heads/master')
+        if: github.event.release || github.event.release.prerelease || (github.ref == 'refs/heads/master')
         run: |
           conda config --set anaconda_upload yes
 
