@@ -34,3 +34,7 @@ conda activate build
 cd dist_tools/conda
 conda mambabuild -c conda-forge spline
 ```
+
+
+### CD
+Set `ANACONDA_USER` and `ANACONDA_TOKEN` as GitHub Secrets.
