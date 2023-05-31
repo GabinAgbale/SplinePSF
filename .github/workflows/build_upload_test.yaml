@@ -24,7 +24,7 @@ jobs:
             os_base: macos
             shell: bash -l {0}
 
-          - os: windows-2019
+          - os: windows-2022
             os_base: windows
             shell: powershell
 
@@ -58,7 +58,7 @@ jobs:
           tar -xzf ~/MacOSX10.9.sdk.tar.xz
           rm ~/MacOSX10.9.sdk.tar.xz
 
-      - uses: Jimver/cuda-toolkit@v0.2.7
+      - uses: Jimver/cuda-toolkit@v0.2.10
         if: ${{ matrix.os_base != 'macos' }}
         id: cuda-toolkit
         with:
@@ -100,16 +100,16 @@ jobs:
             anaconda -t $ANACONDA_TOKEN upload -l ${{ env.ANACONDA_LABEL }} --force -u haydnspass $NAME
           done < $FILENAMES
 
-      # - name: Upload to Anaconda Cloud (Windows)
-      #   if: ${{ matrix.os_base == 'windows' && (github.event.release || github.ref == 'refs/heads/master' )}}
-      #   env:
-      #     ANACONDA_TOKEN: ${{ secrets.TURAGALAB_ANACONDA_TOKEN }}
-      #   shell: powershell
-      #   run: |
-      #     Set-Location -Path .\dist_tools\conda
-      #     foreach($PATH in Get-Content -path $Env:FILENAMES) {
-      #       anaconda -t $Env:ANACONDA_TOKEN upload -l ${{ env.ANACONDA_LABEL }} --force -u turagalab $PATH
-      #     }
+      - name: Upload to Anaconda Cloud (Windows)
+        if: ${{ matrix.os_base == 'windows' && (github.event.release || github.ref == 'refs/heads/master' )}}
+        env:
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        shell: powershell
+        run: |
+          Set-Location -Path .\dist_tools\conda
+          foreach($PATH in Get-Content -path $Env:FILENAMES) {
+            anaconda -t $Env:ANACONDA_TOKEN upload -l ${{ env.ANACONDA_LABEL }} --force -u haydnspass $PATH
+          }
 
 
   build-linux-pip:
@@ -133,7 +133,7 @@ jobs:
         auto-activate-base: false
         activate-environment: spline_dev
 
-    - uses: Jimver/cuda-toolkit@v0.2.8
+    - uses: Jimver/cuda-toolkit@v0.2.10
       id: cuda-toolkit
       with:
         cuda: '11.7.0'
