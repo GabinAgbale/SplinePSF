@@ -2,17 +2,6 @@ cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 project(SplinePSF LANGUAGES CXX C)
 
-# line length too long for windows
-# if(WIN32)
-#    SET(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1)
-#    SET(CMAKE_CXX_USE_RESPONSE_FILE_FOR_OBJECTS 1)
-
-#    SET(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
-#    SET(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
-
-#    SET(CMAKE_NINJA_FORCE_RESPONSE_FILE 1 CACHE INTERNAL "")
-# endif()
-
 include(CheckLanguage)
 check_language(CUDA)
 
@@ -25,7 +14,7 @@ if(CMAKE_CUDA_COMPILER AND NOT CUDA_DISABLED)  # the latter is a user definable 
    add_compile_definitions(CUDA_ENABLED)
 
    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-      set(CMAKE_CUDA_ARCHITECTURES 50 52 60 61 70 75 80 86)
+      set(CMAKE_CUDA_ARCHITECTURES 50 52 60 61 70 75 80 86 90)
    endif()
 
 else()  # NO CUDA
