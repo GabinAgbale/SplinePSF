@@ -15,12 +15,17 @@ conda install -c haydnspass -c conda-forge spline
 * Updated: CUDA supports arbitrary ROI size now. ~~CUDA does not support ROIs bigger than 32 x 32 = 1024 pixels (this is due to the maximum number of threads per block). Please refer to the CPU version in this case~~
 
 ### Build and Install Python package for Local Use
+Make sure that the cuda compiler is in path, should you want to compile with CUDA acceleleration.
 ```bash
+export CUDACXX=/usr/local/cuda/bin/nvcc  # with CUDA support, possibly subject to CMAKE change.
+
 python setup.py install
 ```
 
 ### Buildwheels
 ```bash
+export CUDACXX=/usr/local/cuda/bin/nvcc  # with CUDA support, possibly subject to CMAKE change.
+
 python setup.py bdist_wheel
 ```
 
