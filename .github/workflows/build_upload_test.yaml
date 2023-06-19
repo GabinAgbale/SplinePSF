@@ -1,4 +1,4 @@
-name: build, upload and lazy test
+name: build and upload
 
 on:
   push:
@@ -33,11 +33,23 @@ jobs:
         shell: ${{ matrix.shell}}
 
     env:
-        FILENAMES: temp-filenames.txt
         ANACONDA_LABEL: dev
+        ANACONDA_USER:  ${{ secrets.ANACONDA_USER }}
+        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        ANACONDA_NO_UPLOAD: --no-anaconda-upload
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Change anaconda label on release
+        if: github.event.release
+        run: |
+          echo "ANACONDA_LABEL=main" >> $GITHUB_ENV
+
+      - name: Change anaconda label on prerelease
+        if: "github.event.release.prerelease"
+        run: |
+          echo "ANACONDA_LABEL=pre" >> $GITHUB_ENV
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
@@ -48,7 +60,7 @@ jobs:
 
       - name: Install conda build libraries
         run: |
-          mamba install boa conda-verify anaconda-client
+          mamba install boa conda-build conda-verify anaconda-client
 
       - name: Install macOS SDK
         if: contains( matrix.os, 'macos')
@@ -64,52 +76,22 @@ jobs:
         with:
           cuda: '11.7.0'
 
-      - name: Build SplinePSF (UNIX)
-        if: ${{ matrix.os_base == 'ubuntu' || matrix.os_base == 'macos'}}
+      - name: Overwrite upload config (master and release)
+        if: github.event.release || github.event.release.prerelease || (github.ref == 'refs/heads/master')
+        run: |
+          echo "ANACONDA_NO_UPLOAD=''" >> $GITHUB_ENV
+
+      - name: Build and upload package (UNIX)
+        if: runner.os != 'Windows'
         run: |
           cd ./dist_tools/conda
+          conda mambabuild -c conda-forge spline --user $ANACONDA_USER --token $ANACONDA_TOKEN --label $ANACONDA_LABEL ${{ env.ANACONDA_NO_UPLOAD }}
 
-          conda mambabuild -c conda-forge spline
-          conda mambabuild -c conda-forge spline --output > $FILENAMES
-
-      - name: Build SplinePSF (Windows)
-        if: ${{ matrix.os_base == 'windows' }}
-        run: |
-          Set-Location -Path .\dist_tools\conda
-
-          conda mambabuild -c conda-forge spline
-          conda mambabuild -c conda-forge spline --output > $Env:FILENAMES
-
-      - name: Change anaconda label on release
-        if: github.event.release
-        run: |
-          echo "ANACONDA_LABEL=main" >> $GITHUB_ENV
-
-      - name: Change anaconda label on prerelease
-        if: "github.event.release.prerelease"
-        run: |
-          echo "ANACONDA_LABEL=pre" >> $GITHUB_ENV
-
-      - name: Upload to Anaconda Cloud (UNIX)
-        if: ${{ (matrix.os_base == 'ubuntu' || matrix.os_base == 'macos') && ( github.event.release || github.ref == 'refs/heads/master' )}}
-        env:
-          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+      - name: Build and upload package (Windows)
+        if: runner.os == 'Windows'
         run: |
           cd ./dist_tools/conda
-          while read NAME; do
-            anaconda -t $ANACONDA_TOKEN upload -l ${{ env.ANACONDA_LABEL }} --force -u haydnspass $NAME
-          done < $FILENAMES
-
-      - name: Upload to Anaconda Cloud (Windows)
-        if: ${{ matrix.os_base == 'windows' && (github.event.release || github.ref == 'refs/heads/master' )}}
-        env:
-          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
-        shell: powershell
-        run: |
-          Set-Location -Path .\dist_tools\conda
-          foreach($PATH in Get-Content -path $Env:FILENAMES) {
-            anaconda -t $Env:ANACONDA_TOKEN upload -l ${{ env.ANACONDA_LABEL }} --force -u haydnspass $PATH
-          }
+          conda mambabuild -c conda-forge spline --user $env:ANACONDA_USER --token $env:ANACONDA_TOKEN --label $env:ANACONDA_LABEL ${{ env.ANACONDA_NO_UPLOAD }}
 
 
   build-linux-pip:
@@ -130,7 +112,6 @@ jobs:
         use-mamba: true
         environment-file: environment.yml
         python-version: ${{ matrix.python-version }}
-        auto-activate-base: false
         activate-environment: spline_dev
 
     - uses: Jimver/cuda-toolkit@v0.2.10
