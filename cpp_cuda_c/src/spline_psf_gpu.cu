@@ -632,7 +632,7 @@ auto kernel_derivative(spline *sp, float *rois, float *drv_rois, const int roi_i
     zc = max(zc,0);
     zc = min(zc,sp->zsize-1);
 
-    float fv;  // taken from yiming, not entirely understood by myself
+    float fv = 0.0;  // taken from yiming, not entirely understood by myself
 
     // actual derivative computation
     for (int k = 0; k < 64; k++)
