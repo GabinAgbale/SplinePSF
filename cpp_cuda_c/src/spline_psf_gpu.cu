@@ -22,7 +22,7 @@ using namespace spline_psf_gpu;
 // internal declarations
 void check_host_coeff(const float *h_coeff);
 
-auto forward_rois(spline *d_sp, float *d_rois, const int n, const int roi_size_x, const int roi_size_y,
+auto forward_rois(spline *d_sp, float *d_rois, const unsigned int n, const unsigned int roi_size_x, const unsigned int roi_size_y,
     const float *d_x, const float *d_y, const float *d_z, const float *d_phot) -> void;
 
 auto forward_drv_rois(spline *d_sp, float *d_rois, float *d_drv_rois, const int n, const int roi_size_x, const int roi_size_y,
@@ -38,7 +38,7 @@ auto kernel_derivative(spline *sp, float *rois, float *drv_rois, const int roi_i
     const int npy, int xc, int yc, int zc, const float phot, const float bg,
     const float x_delta, const float y_delta, const float z_delta, const bool add_bg) -> void;
 
-__global__
+__device__
 auto fAt3Dj(spline *sp, float* rois, int roi_ix, int npx, int npy,
     int xc, int yc, int zc, float phot, float x_delta, float y_delta, float z_delta) -> void;
 
@@ -335,8 +335,9 @@ namespace spline_psf_gpu {
         auto d_rois = forward_rois_host2device(d_sp, n_rois, roi_size_x, roi_size_y, h_xr0, h_yr0, h_z0, h_phot);
 
         // accumulate rois into frames
-        const int blocks = (n_rois * roi_size_x * roi_size_y) / 256 + 1;
         const int thread_p_block = 256;
+        const int blocks = (n_rois * roi_size_x * roi_size_y) / thread_p_block + 1;
+
         roi_accumulate<<<blocks, thread_p_block>>>(d_frames, frame_size_x, frame_size_y, n_frames,
             d_rois, n_rois, d_fix, d_xix, d_yix, roi_size_x, roi_size_y);
 
@@ -359,14 +360,16 @@ namespace spline_psf_gpu {
 } // namespace spline_psf_gpu
 
 
-auto forward_rois(spline *d_sp, float *d_rois, const int n, const int roi_size_x, const int roi_size_y,
+auto forward_rois(spline *d_sp, float *d_rois, const unsigned int n, const unsigned int roi_size_x, const unsigned int roi_size_y,
     const float *d_x, const float *d_y, const float *d_z, const float *d_phot) -> void {
 
     // init cuda_err
     cudaError_t err = cudaSuccess;
 
-    // start n blocks which itself start threads corresponding to the number of px childs (dynamic parallelism)
-    kernel_roi<<<n, 1>>>(d_sp, d_rois, roi_size_x, roi_size_y, d_x, d_y, d_z, d_phot);
+    const unsigned int n_threads = 1024;
+    dim3 n_blocks = {n, (roi_size_x * roi_size_y + n_threads - 1) / n_threads};
+
+    kernel_roi<<<n_blocks, n_threads>>>(d_sp, d_rois, roi_size_x, roi_size_y, d_x, d_y, d_z, d_phot);
     cudaDeviceSynchronize();
 
     err = cudaGetLastError();
@@ -410,7 +413,7 @@ auto check_spline(spline *d_sp) -> void {
 
     printf("\tDevice coeff: \n");
     for (int i = 0; i < 100; i++) {
-        printf("\t\ti: %d coeff %f\n", d_sp->coeff[i]);
+        printf("\t\ti: %d coeff %f\n", i, d_sp->coeff[i]);
     }
     printf("\n");
 }
@@ -448,12 +451,12 @@ auto kernel_computeDelta3D(spline *sp, float* delta_f, float* delta_dxf, float* 
 }
 
 // kernel to compute pixel-wise term
-__global__
+__device__
 auto fAt3Dj(spline *sp, float* rois, const int roi_ix, const int npx, const int npy,
     int xc, int yc, int zc, float phot, float x_delta, float y_delta, float z_delta) -> void {
 
-    const int i = (blockIdx.x * blockDim.x + threadIdx.x) / npx;
-    const int j = (blockIdx.x * blockDim.x + threadIdx.x) % npx;
+    const int i = (blockIdx.y * blockDim.y + threadIdx.x) / npx;
+    const int j = (blockIdx.y * blockDim.y + threadIdx.x) % npx;
 
      // allocate space for df, dxf, dyf, dzf
     __shared__ float delta_f[64];
@@ -475,7 +478,6 @@ auto fAt3Dj(spline *sp, float* rois, const int roi_ix, const int npx, const int 
         // This is different to the C library since we needed to rearrange a bit to account for the GPU parallelism
         kernel_computeDelta3D(sp, delta_f, dxf, dyf, dzf, x_delta, y_delta, z_delta);
     }
-
     __syncthreads();  // wait so that all threads see the deltas. REMINDER: only works for within block
 
     // kill excess threads (I think it needs to happen after syncthreads)
@@ -531,10 +533,7 @@ auto kernel_roi(spline *sp, float *rois, const int npx, const int npy, const flo
     z0 = (int)floorf(zc);
     z_delta = zc - z0;
 
-    int n_threads = min(1024, npx * npy);  // max number of threads per block
-    int n_blocks = (npx * npy + n_threads - 1) / n_threads;
-
-    fAt3Dj<<<n_blocks, n_threads>>>(sp, rois, r, npx, npy, x0, y0, z0, phot, x_delta, y_delta, z_delta);
+    fAt3Dj(sp, rois, r, npx, npy, x0, y0, z0, phot, x_delta, y_delta, z_delta);
 
     return;
 }
