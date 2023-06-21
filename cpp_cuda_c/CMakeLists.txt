@@ -7,7 +7,7 @@ check_language(CUDA)
 
 find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
-find_package(CUDA)
+find_package(CUDAToolkit)
 
 if(CMAKE_CUDA_COMPILER AND NOT CUDA_DISABLED)  # the latter is a user definable variable
    enable_language(CUDA)
