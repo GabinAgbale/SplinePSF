@@ -36,7 +36,9 @@ if(CMAKE_CUDA_COMPILER AND NOT CUDA_DISABLED)
    target_include_directories(spline_psf_cu_impl PUBLIC include)
    target_compile_features(spline_psf_cu_impl PUBLIC cxx_std_11)
 
-   target_compile_options(spline_psf_cu_impl PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-G>)
+   # target_compile_options(spline_psf_cu_impl PRIVATE
+   #  $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:SHELL:-G -rdynamic>
+   # )
 
    set_target_properties(
       spline_psf_cu_impl
