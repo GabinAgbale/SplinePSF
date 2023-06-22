@@ -1,6 +1,5 @@
-# CMAKE bug: actual requirement >=3.25,
-# however specifying 3.25 gives fatBinData error at runtime on import
-cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
+cmake_policy(VERSION 3.17)  # otherwise fatBinData error, ToDo: Update or make more specific
 
 project(SplinePSF LANGUAGES CXX C)
 
