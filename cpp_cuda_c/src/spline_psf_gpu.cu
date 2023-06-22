@@ -25,7 +25,7 @@ void check_host_coeff(const float *h_coeff);
 auto forward_rois(spline *d_sp, float *d_rois, const unsigned int n, const unsigned int roi_size_x, const unsigned int roi_size_y,
     const float *d_x, const float *d_y, const float *d_z, const float *d_phot) -> void;
 
-auto forward_drv_rois(spline *d_sp, float *d_rois, float *d_drv_rois, const int n, const int roi_size_x, const int roi_size_y,
+auto forward_drv_rois(spline *d_sp, float *d_rois, float *d_drv_rois, const unsigned int n, const unsigned int roi_size_x, const unsigned int roi_size_y,
     const float *d_x, const float *d_y, const float *d_z, const float *d_phot, const float *d_bg, const bool add_bg) -> void;
 
 __device__
@@ -33,7 +33,7 @@ auto kernel_computeDelta3D(spline *sp,
     float* delta_f, float* delta_dxf, float* delta_dyf, float* delta_dzf,
     float x_delta, float y_delta, float z_delta) -> void;
 
-__global__
+__device__
 auto kernel_derivative(spline *sp, float *rois, float *drv_rois, const int roi_ix, const int npx,
     const int npy, int xc, int yc, int zc, const float phot, const float bg,
     const float x_delta, const float y_delta, const float z_delta, const bool add_bg) -> void;
@@ -382,14 +382,17 @@ auto forward_rois(spline *d_sp, float *d_rois, const unsigned int n, const unsig
     return;
 }
 
-auto forward_drv_rois(spline *d_sp, float *d_rois, float *d_drv_rois, const int n, const int roi_size_x, const int roi_size_y,
+auto forward_drv_rois(spline *d_sp, float *d_rois, float *d_drv_rois, const unsigned int n, const unsigned int roi_size_x, const unsigned int roi_size_y,
     const float *d_x, const float *d_y, const float *d_z, const float *d_phot, const float *d_bg, const bool add_bg) -> void {
 
     // init cuda_err
     cudaError_t err = cudaSuccess;
 
+    const unsigned int n_threads = 1024;
+    dim3 n_blocks = {n, (roi_size_x * roi_size_y + n_threads - 1) / n_threads};
+
     // start n blocks which itself start threads corresponding to the number of px childs (dynamic parallelism)
-    kernel_derivative_roi<<<n, 1>>>(d_sp, d_rois, d_drv_rois, roi_size_x, roi_size_y, d_x, d_y, d_z, d_phot, d_bg, add_bg);
+    kernel_derivative_roi<<<n_blocks, n_threads>>>(d_sp, d_rois, d_drv_rois, roi_size_x, roi_size_y, d_x, d_y, d_z, d_phot, d_bg, add_bg);
     cudaDeviceSynchronize();
 
     err = cudaGetLastError();
@@ -563,20 +566,17 @@ auto kernel_derivative_roi(spline *sp, float *rois, float *drv_rois, const int n
     z0 = (int)floorf(zc);
     z_delta = zc - z0;
 
-    int n_threads = min(1024, npx * npy);  // max number of threads per block
-    int n_blocks = (npx * npy + n_threads - 1) / n_threads;
-
-    kernel_derivative<<<n_blocks, n_threads>>>(sp, rois, drv_rois, r, npx, npy, x0, y0, z0, phot, bg, x_delta, y_delta, z_delta, add_bg);
+    kernel_derivative(sp, rois, drv_rois, r, npx, npy, x0, y0, z0, phot, bg, x_delta, y_delta, z_delta, add_bg);
 
     return;
 }
 
-__global__
+__device__
 auto kernel_derivative(spline *sp, float *rois, float *drv_rois, const int roi_ix, const int npx, const int npy,
     int xc, int yc, int zc, const float phot, const float bg, const float x_delta, const float y_delta, const float z_delta, const bool add_bg) -> void {
 
-    int i = (blockIdx.x * blockDim.x + threadIdx.x) / npx;
-    int j = (blockIdx.x * blockDim.x + threadIdx.x) % npx;
+    const int i = (blockIdx.y * blockDim.y + threadIdx.x) / npx;
+    const int j = (blockIdx.y * blockDim.y + threadIdx.x) % npx;
 
      // allocate space for df, dxf, dyf, dzf
     __shared__ float delta_f[64];
