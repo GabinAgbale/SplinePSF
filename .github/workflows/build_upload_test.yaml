@@ -74,7 +74,7 @@ jobs:
         if: ${{ matrix.os_base != 'macos' }}
         id: cuda-toolkit
         with:
-          cuda: '11.7.0'
+          cuda: '12.1.0'
 
       - name: Overwrite upload config (master and release)
         if: github.event.release || github.event.release.prerelease || (github.ref == 'refs/heads/master')
