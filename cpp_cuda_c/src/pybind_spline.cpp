@@ -100,7 +100,8 @@ class PSFWrapperCUDA : public PSFWrapperBase<spg::spline> {
                         py::array_t<float, py::array::c_style | py::array::forcecast> z,
                         py::array_t<int, py::array::c_style | py::array::forcecast> x_ix,
                         py::array_t<int, py::array::c_style | py::array::forcecast> y_ix,
-                        py::array_t<float, py::array::c_style | py::array::forcecast> phot) -> py::array_t<float> {
+                        py::array_t<float, py::array::c_style | py::array::forcecast> phot,
+                        const bool flip_x, const bool flip_y) -> py::array_t<float> {
 
             frame_size_x = fx;
             frame_size_y = fy;
@@ -108,7 +109,7 @@ class PSFWrapperCUDA : public PSFWrapperBase<spg::spline> {
             py::array_t<float> h_frames(n_frames * frame_size_x * frame_size_y);
 
             spg::forward_frames_host2host(psf, h_frames.mutable_data(), frame_size_x, frame_size_y, n_frames, n_emitters, roi_size_x, roi_size_y,
-                frame_ix.data(), xr.data(), yr.data(), z.data(), x_ix.data(), y_ix.data(), phot.data());
+                frame_ix.data(), xr.data(), yr.data(), z.data(), x_ix.data(), y_ix.data(), phot.data(), flip_x, flip_y);
 
             return h_frames;
         }

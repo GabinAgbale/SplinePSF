@@ -55,7 +55,9 @@ __global__
 auto roi_accumulate(float *frames, const int frame_size_x, const int frame_size_y, const int n_frames,
     const float *rois, const int n_rois,
     const int *frame_ix, const int *x0, const int *y0,
-    const int roi_size_x, const int roi_size_y) -> void;
+    const int roi_size_x, const int roi_size_y,
+    const bool flip_x, const bool flip_y,
+    ) -> void;
 
 namespace spline_psf_gpu {
 
@@ -294,10 +296,12 @@ namespace spline_psf_gpu {
     auto forward_frames_host2host(spline *d_sp, float *h_frames, const int frame_size_x, const int frame_size_y, const int n_frames,
         const int n_rois, const int roi_size_x, const int roi_size_y,
         const int *h_frame_ix, const float *h_xr0, const float *h_yr0, const float *h_z0,
-        const int *h_x_ix, const int *h_y_ix, const float *h_phot) -> void {
+        const int *h_x_ix, const int *h_y_ix, const float *h_phot,
+        const bool flip_x, const bool flip_y) -> void {
 
         auto d_frames = forward_frames_host2device(d_sp, frame_size_x, frame_size_y, n_frames,
-            n_rois, roi_size_x, roi_size_y, h_frame_ix, h_xr0, h_yr0, h_z0, h_x_ix, h_y_ix, h_phot);
+            n_rois, roi_size_x, roi_size_y, h_frame_ix, h_xr0, h_yr0, h_z0, h_x_ix, h_y_ix, h_phot,
+            flip_x, flip_y);
 
         cudaMemcpy(h_frames, d_frames, n_frames * frame_size_x * frame_size_y * sizeof(float), cudaMemcpyDeviceToHost);
 
@@ -308,7 +312,8 @@ namespace spline_psf_gpu {
     auto forward_frames_host2device(spline *d_sp, const int frame_size_x, const int frame_size_y, const int n_frames,
         const int n_rois, const int roi_size_x, const int roi_size_y,
         const int *h_frame_ix, const float *h_xr0, const float *h_yr0, const float *h_z0,
-        const int *h_x_ix, const int *h_y_ix, const float *h_phot) -> float* {
+        const int *h_x_ix, const int *h_y_ix, const float *h_phot,
+        const bool flip_x, const bool flip_y) -> float* {
 
         cudaError_t err;
 
@@ -339,7 +344,7 @@ namespace spline_psf_gpu {
         const int blocks = (n_rois * roi_size_x * roi_size_y) / thread_p_block + 1;
 
         roi_accumulate<<<blocks, thread_p_block>>>(d_frames, frame_size_x, frame_size_y, n_frames,
-            d_rois, n_rois, d_fix, d_xix, d_yix, roi_size_x, roi_size_y);
+            d_rois, n_rois, d_fix, d_xix, d_yix, roi_size_x, roi_size_y, flip_x, flip_y);
 
         cudaDeviceSynchronize();
 
@@ -668,7 +673,8 @@ __global__
 auto roi_accumulate(float *frames, const int frame_size_x, const int frame_size_y, const int n_frames,
                     const float *rois, const int n_rois,
                     const int *frame_ix, const int *x0, const int *y0,
-                    const int roi_size_x, const int roi_size_y) -> void {
+                    const int roi_size_x, const int roi_size_y,
+                    const bool flip_x, const bool flip_y) -> void {
 
         // kernel ix
         const long kx = (blockIdx.x * blockDim.x + threadIdx.x);
@@ -677,9 +683,13 @@ auto roi_accumulate(float *frames, const int frame_size_x, const int frame_size_
         }
 
         // roi index
-        const long j = kx % roi_size_y;
-        const long i = ((kx - j) / roi_size_y) % roi_size_x;
+        const long j_original = kx % roi_size_y;
+        const long i_original = ((kx - j) / roi_size_y) % roi_size_x;
         const long r = (((kx - j) / roi_size_y) - i) / roi_size_x;
+
+        // flip
+        const long i = flip_x ? roi_size_x - 1 - i_original : i_original;
+        const long j = flip_y ? roi_size_y - 1 - j_original : j_original;
 
         const long ii = x0[r] + i;
         const long jj = y0[r] + j;
