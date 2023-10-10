@@ -56,7 +56,7 @@ auto roi_accumulate(float *frames, const int frame_size_x, const int frame_size_
     const float *rois, const int n_rois,
     const int *frame_ix, const int *x0, const int *y0,
     const int roi_size_x, const int roi_size_y,
-    const bool flip_x, const bool flip_y,
+    const bool flip_x, const bool flip_y
     ) -> void;
 
 namespace spline_psf_gpu {
@@ -684,8 +684,8 @@ auto roi_accumulate(float *frames, const int frame_size_x, const int frame_size_
 
         // roi index
         const long j_original = kx % roi_size_y;
-        const long i_original = ((kx - j) / roi_size_y) % roi_size_x;
-        const long r = (((kx - j) / roi_size_y) - i) / roi_size_x;
+        const long i_original = ((kx - j_original) / roi_size_y) % roi_size_x;
+        const long r = (((kx - j_original) / roi_size_y) - i_original) / roi_size_x;
 
         // flip
         const long i = flip_x ? roi_size_x - 1 - i_original : i_original;

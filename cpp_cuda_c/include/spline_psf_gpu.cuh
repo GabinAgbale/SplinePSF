@@ -60,7 +60,8 @@ namespace spline_psf_gpu {
     auto forward_frames_host2device(spline *d_sp, const int frame_size_x, const int frame_size_y, const int n_frames,
         const int n_rois, const int roi_size_x, const int roi_size_y,
         const int *h_frame_ix, const float *h_xr0, const float *h_yr0, const float *h_z0,
-        const int *h_x_ix, const int *h_y_ix, const float *h_phot) -> float*;
+        const int *h_x_ix, const int *h_y_ix, const float *h_phot,
+        const bool flip_x, const bool flip_y) -> float*;
 
     // Wrapper function to compute the ROIs on the device and ships it back to the host
     // Takes in all the host arguments and returns the ROIs to the host
