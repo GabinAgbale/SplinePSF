@@ -52,12 +52,15 @@ auto kernel_derivative_roi(spline *sp, float *rois, float *drv_rois, const int n
     const float *phot_, const float *bg_, const bool add_bg) -> void;
 
 __global__
+auto flip_rois(float *output_rois, const float *input_rois,
+               const int roi_size_x, const int roi_size_y, const int n_rois,
+               const bool flip_x, const bool flip_y) -> void;
+
+__global__
 auto roi_accumulate(float *frames, const int frame_size_x, const int frame_size_y, const int n_frames,
     const float *rois, const int n_rois,
     const int *frame_ix, const int *x0, const int *y0,
-    const int roi_size_x, const int roi_size_y,
-    const bool flip_x, const bool flip_y
-    ) -> void;
+    const int roi_size_x, const int roi_size_y) -> void;
 
 namespace spline_psf_gpu {
 
@@ -339,12 +342,36 @@ namespace spline_psf_gpu {
 
         auto d_rois = forward_rois_host2device(d_sp, n_rois, roi_size_x, roi_size_y, h_xr0, h_yr0, h_z0, h_phot);
 
+        // flip rois if necessary
+        if (flip_x || flip_y) {
+            printf("Flipping ROIs ...\n");
+            const unsigned int thread_p_block = 256;
+            const unsigned int blocks = (n_rois * roi_size_x * roi_size_y) / thread_p_block + 1;
+
+            // copy rois to new memory
+            float *d_rois_in;
+            cudaMalloc(&d_rois_in, n_rois * roi_size_x * roi_size_y * sizeof(float));
+            cudaMemcpy(d_rois_in, d_rois, n_rois * roi_size_x * roi_size_y * sizeof(float), cudaMemcpyDeviceToDevice);
+
+            flip_rois<<<blocks, thread_p_block>>>(d_rois, d_rois_in, roi_size_x, roi_size_y, n_rois, flip_x, flip_y);
+            cudaDeviceSynchronize();
+
+            cudaFree(d_rois_in);
+
+            err = cudaGetLastError();
+            if (err != cudaSuccess) {
+                std::stringstream rt_err;
+                rt_err << "Error during ROI flipping.\nCode: "<< err << "\nInformation: \n" << cudaGetErrorString(err);
+                throw std::runtime_error(rt_err.str());
+            }
+        }
+
         // accumulate rois into frames
         const int thread_p_block = 256;
         const int blocks = (n_rois * roi_size_x * roi_size_y) / thread_p_block + 1;
 
         roi_accumulate<<<blocks, thread_p_block>>>(d_frames, frame_size_x, frame_size_y, n_frames,
-            d_rois, n_rois, d_fix, d_xix, d_yix, roi_size_x, roi_size_y, flip_x, flip_y);
+            d_rois, n_rois, d_fix, d_xix, d_yix, roi_size_x, roi_size_y);
 
         cudaDeviceSynchronize();
 
@@ -668,13 +695,35 @@ auto kernel_derivative(spline *sp, float *rois, float *drv_rois, const int roi_i
     return;
 }
 
+
+__global__
+auto flip_rois(float *output_rois, const float *input_rois,
+               const int roi_size_x, const int roi_size_y, const int n_rois,
+               const bool flip_x, const bool flip_y) -> void {
+
+    const long kx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (kx >= n_rois * roi_size_x * roi_size_y) {
+        return;
+    }
+
+    const long j_original = kx % roi_size_y;
+    const long i_original = ((kx - j_original) / roi_size_y) % roi_size_x;
+    const long r = (((kx - j_original) / roi_size_y) - i_original) / roi_size_x;
+
+    const long i = flip_x ? roi_size_x - 1 - i_original : i_original;
+    const long j = flip_y ? roi_size_y - 1 - j_original : j_original;
+
+    float val = input_rois[r * roi_size_x * roi_size_y + i_original * roi_size_y + j_original];
+    output_rois[r * roi_size_x * roi_size_y + i * roi_size_y + j] = val;
+}
+
+
 // accumulate rois to frames
 __global__
 auto roi_accumulate(float *frames, const int frame_size_x, const int frame_size_y, const int n_frames,
                     const float *rois, const int n_rois,
                     const int *frame_ix, const int *x0, const int *y0,
-                    const int roi_size_x, const int roi_size_y,
-                    const bool flip_x, const bool flip_y) -> void {
+                    const int roi_size_x, const int roi_size_y) -> void {
 
         // kernel ix
         const long kx = (blockIdx.x * blockDim.x + threadIdx.x);
@@ -683,13 +732,9 @@ auto roi_accumulate(float *frames, const int frame_size_x, const int frame_size_
         }
 
         // roi index
-        const long j_original = kx % roi_size_y;
-        const long i_original = ((kx - j_original) / roi_size_y) % roi_size_x;
-        const long r = (((kx - j_original) / roi_size_y) - i_original) / roi_size_x;
-
-        // flip
-        const long i = flip_x ? roi_size_x - 1 - i_original : i_original;
-        const long j = flip_y ? roi_size_y - 1 - j_original : j_original;
+        const long j = kx % roi_size_y;
+        const long i = ((kx - j) / roi_size_y) % roi_size_x;
+        const long r = (((kx - j) / roi_size_y) - i) / roi_size_x;
 
         const long ii = x0[r] + i;
         const long jj = y0[r] + j;
