@@ -24,6 +24,9 @@ typedef struct {
     int ysize;  // size of the spline in y
     int zsize;  // size of the spline in z
 
+    bool flip_x;  // flip x axis before roi accumulation
+    bool flip_y;  // flip y axis before roi accumulation
+
     float roi_out_eps;  // epsilon value outside the roi
     float roi_out_deriv_eps; // epsilon value of derivative values outside the roi
     int n_par; // number of parameters
@@ -39,7 +42,8 @@ typedef struct {
 /// \param [in] ysize: size of the coefficients in y
 /// \param [in] zsize: size of the coefficients in z
 /// \return spline*: pointer to spline struct
-spline *initSpline(const float *coeff, int xsize, int ysize, int zsize);
+spline *initSpline(const float *coeff, int xsize, int ysize, int zsize,
+    const bool flip_x, const bool flip_y);
 
 void destructor(spline *sp);
 

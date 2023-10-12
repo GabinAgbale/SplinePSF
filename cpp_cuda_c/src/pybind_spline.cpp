@@ -48,9 +48,10 @@ class PSFWrapperCUDA : public PSFWrapperBase<spg::spline> {
     public:
 
         explicit PSFWrapperCUDA(int coeff_xsize, int coeff_ysize, int coeff_zsize, int roi_size_x_, int roi_size_y_,
+            bool flip_x, bool flip_y,
             py::array_t<float, py::array::f_style | py::array::forcecast> coeff, int device_ix = 0) : PSFWrapperBase{roi_size_x_, roi_size_y_} {
 
-                psf = spg::d_spline_init(coeff.data(), coeff_xsize, coeff_ysize, coeff_zsize, device_ix);
+                psf = spg::d_spline_init(coeff.data(), coeff_xsize, coeff_ysize, coeff_zsize, flip_x, flip_y, device_ix);
 
             }
 
@@ -100,8 +101,7 @@ class PSFWrapperCUDA : public PSFWrapperBase<spg::spline> {
                         py::array_t<float, py::array::c_style | py::array::forcecast> z,
                         py::array_t<int, py::array::c_style | py::array::forcecast> x_ix,
                         py::array_t<int, py::array::c_style | py::array::forcecast> y_ix,
-                        py::array_t<float, py::array::c_style | py::array::forcecast> phot,
-                        const bool flip_x, const bool flip_y) -> py::array_t<float> {
+                        py::array_t<float, py::array::c_style | py::array::forcecast> phot) -> py::array_t<float> {
 
             frame_size_x = fx;
             frame_size_y = fy;
@@ -109,7 +109,7 @@ class PSFWrapperCUDA : public PSFWrapperBase<spg::spline> {
             py::array_t<float> h_frames(n_frames * frame_size_x * frame_size_y);
 
             spg::forward_frames_host2host(psf, h_frames.mutable_data(), frame_size_x, frame_size_y, n_frames, n_emitters, roi_size_x, roi_size_y,
-                frame_ix.data(), xr.data(), yr.data(), z.data(), x_ix.data(), y_ix.data(), phot.data(), flip_x, flip_y);
+                frame_ix.data(), xr.data(), yr.data(), z.data(), x_ix.data(), y_ix.data(), phot.data());
 
             return h_frames;
         }
@@ -123,6 +123,7 @@ class PSFWrapperCUDA {
 public:
 
     PSFWrapperCUDA(int coeff_xsize, int coeff_ysize, int coeff_zsize, int roi_size_x_, int roi_size_y_,
+                   bool flip_x, bool flip_y,
                    py::array_t<float, py::array::f_style | py::array::forcecast> coeff, int device_ix) {
         throw std::runtime_error("Not compiled with CUDA enabled. Please refer to CPU version.");
     }
@@ -135,10 +136,11 @@ class PSFWrapperCPU : public PSFWrapperBase<spc::spline> {
 public:
 
     explicit PSFWrapperCPU(int coeff_xsize, int coeff_ysize, int coeff_zsize, int roi_size_x_, int roi_size_y_,
+                           bool flip_x, bool flip_y,
                            py::array_t<float, py::array::f_style | py::array::forcecast> coeff) : PSFWrapperBase{
             roi_size_x_, roi_size_y_} {
 
-        psf = spc::initSpline(coeff.data(), coeff_xsize, coeff_ysize, coeff_zsize);
+        psf = spc::initSpline(coeff.data(), coeff_xsize, coeff_ysize, coeff_zsize, flip_x, flip_y);
 
     }
 
@@ -210,14 +212,14 @@ public:
 
 PYBIND11_MODULE(spline, m) {
     py::class_<PSFWrapperCPU>(m, "PSFWrapperCPU")
-            .def(py::init<int, int, int, int, int, py::array_t<float>>())
+            .def(py::init<int, int, int, int, int, bool, bool, py::array_t<float>>())
             .def("forward_rois", &PSFWrapperCPU::forward_rois)
             .def("forward_drv_rois", &PSFWrapperCPU::forward_drv_rois)
             .def("forward_frames", &PSFWrapperCPU::forward_frames);
 
 #if CUDA_ENABLED
     py::class_<PSFWrapperCUDA>(m, "PSFWrapperCUDA")
-        .def(py::init<int, int, int, int, int, py::array_t<float>, int>())
+        .def(py::init<int, int, int, int, int, bool, bool, py::array_t<float>, int>())
         .def("forward_rois", &PSFWrapperCUDA::forward_rois)
         .def("forward_drv_rois", &PSFWrapperCUDA::forward_drv_rois)
         .def("forward_frames", &PSFWrapperCUDA::forward_frames);
@@ -227,7 +229,7 @@ PYBIND11_MODULE(spline, m) {
 
 #else  // make PSFWrapperCUDA dummy class that throws an error
     py::class_<PSFWrapperCUDA>(m, "PSFWrapperCUDA")
-            .def(py::init<int, int, int, int, int, py::array_t<float>, int>());
+            .def(py::init<int, int, int, int, int, bool, bool, py::array_t<float>, int>());
 
     m.attr("cuda_compiled") = false;
     m.def("cuda_is_available", [](void) {return false;}, "Check CUDA availability of spline implementatio (this can be different from cuda_compiled).");  // always false if not even cuda compiled

@@ -31,12 +31,18 @@ void kernel_roi(spline *sp, float *rois, int roi_ix, int npx, int npy, float xc,
 void kernel_drv_roi(spline *sp, float *rois, float *drv_rois, int roi_ix, int npx, int npy,
                     float xc, float yc, float zc, float phot, float bg, bool add_bg);
 
+void flip_rois(float *output_rois, const float *input_rois,
+               const int roi_size_x, const int roi_size_y, const int n_rois,
+               const bool flip_x, const bool flip_y);
+
 void roi_accumulator(float *frames, int frame_size_x, int frame_size_y, int n_frames, const float *rois,
                      int n_rois, const int *frame_ix, const int *x0, const int *y0, int roi_size_x, int roi_size_y);
 
 
 // Definitions
-spline *initSpline(const float *coeff, const int xsize, int const ysize, const int zsize) {
+spline *initSpline(const float *coeff,
+    const int xsize, int const ysize, const int zsize,
+    const bool flip_x, const bool flip_y) {
 
     spline *sp;
     sp = (spline *) malloc(sizeof(spline));
@@ -44,6 +50,9 @@ spline *initSpline(const float *coeff, const int xsize, int const ysize, const i
     sp->xsize = xsize;
     sp->ysize = ysize;
     sp->zsize = zsize;
+
+    sp->flip_x = flip_x;
+    sp->flip_y = flip_y;
 
     sp->roi_out_eps = 1e-10;
     sp->roi_out_deriv_eps = 0.0;
@@ -301,6 +310,28 @@ void forward_drv_rois(spline *sp, float *rois, float *drv_rois, const int n_rois
     }
 }
 
+
+void flip_rois(float *output_rois, const float *input_rois,
+               const int roi_size_x, const int roi_size_y, const int n_rois,
+               const bool flip_x, const bool flip_y) {
+
+    // loop over rois
+    for (int r = 0; r < n_rois; r++) {
+        // loop over all roi px
+        for (int i = 0; i < roi_size_x; i++) {
+            for (int j = 0; j < roi_size_y; j++) {
+
+                int flipped_i = flip_x ? roi_size_x - 1 - i : i;
+                int flipped_j = flip_y ? roi_size_y - 1 - j : j;
+
+                float val = input_rois[r * roi_size_x * roi_size_y + i * roi_size_y + j];
+                output_rois[r * roi_size_x * roi_size_y + flipped_i * roi_size_y + flipped_j] = val;
+            }
+        }
+    }
+}
+
+
 void roi_accumulator(float *frames, const int frame_size_x, const int frame_size_y, const int n_frames,
                      const float *rois, const int n_rois, const int *frame_ix, const int *x0, const int *y0,
                      const int roi_size_x, const int roi_size_y) {
@@ -346,6 +377,17 @@ void forward_frames(spline *sp, float *frames, const int frame_size_x, const int
 
     // forward rois and accumulate
     forward_rois(sp, rois, n_rois, roi_size_x, roi_size_y, xr0, yr0, z0, phot);
+
+    if (sp->flip_x || sp->flip_y) {
+        float *flipped_rois = (float *) malloc(roi_px * sizeof(float));
+        flip_rois(flipped_rois, rois, roi_size_x, roi_size_y, n_rois, sp->flip_x, sp->flip_y);
+        // copy back to rois
+        for (int i = 0; i < roi_px; i++) {
+            rois[i] = flipped_rois[i];
+        }
+        free(flipped_rois);
+    }
+
     roi_accumulator(frames, frame_size_x, frame_size_y, n_frames, rois, n_rois, frame_ix, x_ix, y_ix, roi_size_x,
                     roi_size_y);
 

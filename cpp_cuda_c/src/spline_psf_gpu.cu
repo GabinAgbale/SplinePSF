@@ -98,7 +98,10 @@ namespace spline_psf_gpu {
     }
 
     // Create struct and ship it to device
-    auto d_spline_init(const float *h_coeff, int xsize, int ysize, int zsize, int device_ix) -> spline* {
+    auto d_spline_init(const float *h_coeff,
+        const int xsize, const int ysize, const int zsize,
+        const bool flip_x, const bool flip_y,
+        int device_ix) -> spline* {
 
         // allocate struct on host and ship it to device later
         // ToDo: C++11ify this
@@ -108,6 +111,9 @@ namespace spline_psf_gpu {
         sp->xsize = xsize;
         sp->ysize = ysize;
         sp->zsize = zsize;
+
+        sp->flip_x = flip_x;
+        sp->flip_y = flip_y;
 
         sp->roi_out_eps = 1e-10;
         sp->roi_out_deriv_eps = 0.0;
@@ -299,12 +305,10 @@ namespace spline_psf_gpu {
     auto forward_frames_host2host(spline *d_sp, float *h_frames, const int frame_size_x, const int frame_size_y, const int n_frames,
         const int n_rois, const int roi_size_x, const int roi_size_y,
         const int *h_frame_ix, const float *h_xr0, const float *h_yr0, const float *h_z0,
-        const int *h_x_ix, const int *h_y_ix, const float *h_phot,
-        const bool flip_x, const bool flip_y) -> void {
+        const int *h_x_ix, const int *h_y_ix, const float *h_phot) -> void {
 
         auto d_frames = forward_frames_host2device(d_sp, frame_size_x, frame_size_y, n_frames,
-            n_rois, roi_size_x, roi_size_y, h_frame_ix, h_xr0, h_yr0, h_z0, h_x_ix, h_y_ix, h_phot,
-            flip_x, flip_y);
+            n_rois, roi_size_x, roi_size_y, h_frame_ix, h_xr0, h_yr0, h_z0, h_x_ix, h_y_ix, h_phot);
 
         cudaMemcpy(h_frames, d_frames, n_frames * frame_size_x * frame_size_y * sizeof(float), cudaMemcpyDeviceToHost);
 
@@ -315,8 +319,7 @@ namespace spline_psf_gpu {
     auto forward_frames_host2device(spline *d_sp, const int frame_size_x, const int frame_size_y, const int n_frames,
         const int n_rois, const int roi_size_x, const int roi_size_y,
         const int *h_frame_ix, const float *h_xr0, const float *h_yr0, const float *h_z0,
-        const int *h_x_ix, const int *h_y_ix, const float *h_phot,
-        const bool flip_x, const bool flip_y) -> float* {
+        const int *h_x_ix, const int *h_y_ix, const float *h_phot) -> float* {
 
         cudaError_t err;
 
@@ -342,9 +345,18 @@ namespace spline_psf_gpu {
 
         auto d_rois = forward_rois_host2device(d_sp, n_rois, roi_size_x, roi_size_y, h_xr0, h_yr0, h_z0, h_phot);
 
+        bool h_flip_x, h_flip_y;
+        cudaError_t err_x = cudaMemcpy(&h_flip_x, &(d_sp->flip_x), sizeof(bool), cudaMemcpyDeviceToHost);
+        cudaError_t err_y = cudaMemcpy(&h_flip_y, &(d_sp->flip_y), sizeof(bool), cudaMemcpyDeviceToHost);
+
+        if (err_x != cudaSuccess || err_y != cudaSuccess) {
+            std::stringstream rt_err;
+            rt_err << "Error during ROI flipping.\nCode: "<< err << "\nInformation: \n" << cudaGetErrorString(err);
+            throw std::runtime_error(rt_err.str());
+        }
+
         // flip rois if necessary
-        if (flip_x || flip_y) {
-            printf("Flipping ROIs ...\n");
+        if (h_flip_x || h_flip_y) {
             const unsigned int thread_p_block = 256;
             const unsigned int blocks = (n_rois * roi_size_x * roi_size_y) / thread_p_block + 1;
 
@@ -353,7 +365,7 @@ namespace spline_psf_gpu {
             cudaMalloc(&d_rois_in, n_rois * roi_size_x * roi_size_y * sizeof(float));
             cudaMemcpy(d_rois_in, d_rois, n_rois * roi_size_x * roi_size_y * sizeof(float), cudaMemcpyDeviceToDevice);
 
-            flip_rois<<<blocks, thread_p_block>>>(d_rois, d_rois_in, roi_size_x, roi_size_y, n_rois, flip_x, flip_y);
+            flip_rois<<<blocks, thread_p_block>>>(d_rois, d_rois_in, roi_size_x, roi_size_y, n_rois, h_flip_x, h_flip_y);
             cudaDeviceSynchronize();
 
             cudaFree(d_rois_in);
