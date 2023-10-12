@@ -8,7 +8,10 @@ source:
 build:
   number: 1
   ignore_run_exports_from:
-    - nvcc_linux-64                   # [linux]
+    # - cuda-nvcc_linux-64                   # [linux]
+  script_env:
+    - CUDAToolkit_INCLUDE_DIR
+    - CUDA_CUDART
 
 requirements:
   build:
@@ -17,7 +20,7 @@ requirements:
     - python
     - cmake =3.25
     - ninja
-    - pip
+    - pip =22.1
     # - cuda-nvcc_linux-64 =12.1.1            # [linux]  # 12.1 not yet available
 
   host:
