@@ -114,6 +114,27 @@ class PSFWrapperCUDA : public PSFWrapperBase<spg::spline> {
             return h_frames;
         }
 
+        auto accumulate_rois(const int fx, const int fy,
+                        py::array_t<int, py::array::c_style | py::array::forcecast> frame_ix,
+                        const int n_frames,
+                        const int rx,
+                        const int ry,
+                        const int n_rois,
+                        py::array_t<float, py::array::c_style | py::array::forcecast> rois,
+                        py::array_t<int, py::array::c_style | py::array::forcecast> x_ix,
+                        py::array_t<int, py::array::c_style | py::array::forcecast> y_ix) -> py::array_t<float> {
+
+            int frame_size_x = fx;
+            int frame_size_y = fy;
+            int roi_size_x = rx;
+            int roi_size_y = ry;
+
+            py::array_t<float> h_frames(n_frames * frame_size_x * frame_size_y);
+            spg::roi_accumulate_host2host(rois.mutable_data(), h_frames.mutable_data(), frame_size_x, frame_size_y,
+                 n_frames, roi_size_x, roi_size_y,  n_rois, frame_ix.data(), x_ix.data(), y_ix.data());
+
+            return h_frames;
+        }
 
 };
 #else
@@ -222,7 +243,8 @@ PYBIND11_MODULE(spline, m) {
         .def(py::init<int, int, int, int, int, bool, bool, py::array_t<float>, int>())
         .def("forward_rois", &PSFWrapperCUDA::forward_rois)
         .def("forward_drv_rois", &PSFWrapperCUDA::forward_drv_rois)
-        .def("forward_frames", &PSFWrapperCUDA::forward_frames);
+        .def("forward_frames", &PSFWrapperCUDA::forward_frames)
+        .def("accumulate_rois",  &PSFWrapperCUDA::accumulate_rois);
 
     m.attr("cuda_compiled") = true;
     m.def("cuda_is_available", &spg::cuda_is_available, "Check CUDA availability of spline implementatio (this can be different from cuda_compiled).");

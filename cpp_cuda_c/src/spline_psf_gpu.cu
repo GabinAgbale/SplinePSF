@@ -401,6 +401,70 @@ namespace spline_psf_gpu {
 
         return d_frames;
     }
+
+    auto roi_accumulate_host2device(float *d_rois, const int frame_size_x, const int frame_size_y, const int n_frames,
+        const int roi_size_x, const int roi_size_y, int n_rois, const int *h_frame_ix, const int *h_x_ix, const int *h_y_ix) -> float* {
+
+        cudaError_t err;
+
+        // ToDo: maybe convert to stream
+        float* d_frames;
+        cudaMalloc(&d_frames, n_frames * frame_size_x * frame_size_y * sizeof(float));
+        err = cudaGetLastError();
+        if (err != cudaSuccess) {
+            std::stringstream rt_err;
+            rt_err << "Error during Frame memory allocation.\nCode: "<< err << "\nInformation: \n" << cudaGetErrorString(err);
+            throw std::runtime_error(rt_err.str());
+        }
+        cudaMemset(d_frames, 0.0, n_frames * frame_size_x * frame_size_y * sizeof(float));
+
+        // allocate indices
+        int *d_xix, *d_yix, *d_fix;
+        cudaMalloc(&d_xix, n_rois * sizeof(int));
+        cudaMalloc(&d_yix, n_rois * sizeof(int));
+        cudaMalloc(&d_fix, n_rois * sizeof(int));
+        cudaMemcpy(d_xix, h_x_ix, n_rois * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_yix, h_y_ix, n_rois * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_fix, h_frame_ix, n_rois * sizeof(int), cudaMemcpyHostToDevice);
+
+
+        // accumulate rois into frames
+        const int blocks = (n_rois * roi_size_x * roi_size_y) / 256 + 1;
+        const int thread_p_block = 256;
+        roi_accumulate<<<blocks, thread_p_block>>>(d_frames, frame_size_x, frame_size_y, n_frames,
+            d_rois, n_rois, d_fix, d_xix, d_yix, roi_size_x, roi_size_y);
+
+
+
+        cudaDeviceSynchronize();
+
+        err = cudaGetLastError();
+        if (err != cudaSuccess) {
+            std::stringstream rt_err;
+            rt_err << "Error during frame computation computation.\nCode: "<< err << "\nInformation: \n" << cudaGetErrorString(err);
+            throw std::runtime_error(rt_err.str());
+        }
+
+        cudaFree(d_xix);
+        cudaFree(d_yix);
+        cudaFree(d_fix);
+        cudaFree(d_rois);
+
+        return d_frames;
+
+    }
+
+    auto roi_accumulate_host2host(float *d_rois, float *h_frames, const int frame_size_x, const int frame_size_y,
+        const int n_frames, const int roi_size_x, const int roi_size_y, const int n_rois, const int *h_frame_ix, const int *h_x_ix, const int *h_y_ix) -> void {
+
+
+        auto d_frames = roi_accumulate_host2device(d_rois, frame_size_x, frame_size_y, n_frames, roi_size_x, roi_size_y,
+         n_rois, h_frame_ix, h_x_ix, h_y_ix);
+
+        cudaMemcpy(h_frames, d_frames, n_frames * frame_size_x * frame_size_y * sizeof(float), cudaMemcpyDeviceToHost);
+
+        cudaFree(d_frames);
+    }
 } // namespace spline_psf_gpu
 
 

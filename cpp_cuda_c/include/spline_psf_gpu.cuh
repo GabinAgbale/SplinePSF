@@ -67,6 +67,10 @@ namespace spline_psf_gpu {
         const int *h_frame_ix, const float *h_xr0, const float *h_yr0, const float *h_z0,
         const int *h_x_ix, const int *h_y_ix, const float *h_phot) -> float*;
 
+    auto roi_accumulate_host2device(float *d_rois, const int frame_size_x, const int frame_size_y, const int n_frames,
+        const int roi_size_x, const int roi_size_y, int n_rois, const int *h_frame_ix, const int *h_x_ix, const int *h_y_ix) -> float*;
+
+
     // Wrapper function to compute the ROIs on the device and ships it back to the host
     // Takes in all the host arguments and returns the ROIs to the host
     // Allocation for rois must have happened outside
@@ -81,6 +85,11 @@ namespace spline_psf_gpu {
         const int n_rois, const int roi_size_x, const int roi_size_y,
         const int *h_frame_ix, const float *h_xr0, const float *h_yr0, const float *h_z0,
         const int *h_x_ix, const int *h_y_ix, const float *h_phot) -> void;
+
+    auto roi_accumulate_host2host(float *d_rois, float *h_frames, const int frame_size_x, const int frame_size_y,
+        const int n_frames, const int roi_size_x, const int roi_size_y, const int n_rois, const int *h_frame_ix, const int *h_x_ix, const int *h_y_ix) -> void;
+
+
 
 }
 
