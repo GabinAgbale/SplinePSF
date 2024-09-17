@@ -67,7 +67,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name='spline',
-    version='0.11.1dev0',
+    version='0.11.2dev0',
     packages=setuptools.find_packages(),
     ext_modules=[CMakeExtension('spline', '../cpp_cuda_c')],
     cmdclass=dict(build_ext=CMakeBuild),
@@ -75,7 +75,7 @@ setup(
     zip_safe=False,
     url='',
     license='GPL3',
-    author='Lucas-Raphael Mueller',
+    author='Lucas-Raphael Mueller & Gabin Agbale',
     author_email='',
     description=''
 )
